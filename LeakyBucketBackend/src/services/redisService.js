@@ -8,7 +8,7 @@ const redis = new Redis({
     "port": 6379       // Default Redis port
 });
 
-const API_LIMIT = 60; // Marketo limit
+const API_LIMIT = 100; // Marketo limit
 const WINDOW_SIZE = 20 * 1000; // 20 seconds in milliseconds
 
 async function rateLimitCheck(orgId, connectionId) {

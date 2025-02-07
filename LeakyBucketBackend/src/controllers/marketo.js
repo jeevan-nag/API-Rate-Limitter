@@ -3,7 +3,7 @@ const axiosRetry = require("axios-retry").default;
 const moment = require("moment");
 const { rateLimitCheck } = require("../services/redisService")
 const axiosInstance = axios.create({
-    timeout: 30000, // 30 seconds
+    timeout: 10 * 60 * 1000, // 30 seconds
 });
 
 axiosRetry(axiosInstance, {
@@ -16,8 +16,9 @@ axiosRetry(axiosInstance, {
 });
 
 const invokeMarketoAPI = async (req) => {
+    const { url, orgId, connectionId, accessToken, startTime } = req.body;
     try {
-        const { url, orgId, connectionId, accessToken, startTime } = req.body;
+
         while (true) {
             const waitTime = await rateLimitCheck(orgId, connectionId);
             if (waitTime === 0) {
@@ -28,22 +29,32 @@ const invokeMarketoAPI = async (req) => {
                     },
                 });
                 if (response?.data?.success) {
-                    return { startTime, endTime: moment().toISOString(), data: response?.data?.requestId };
+                    return { startTime, endTime: moment().toISOString(), data: JSON.stringify(response?.data) };
                 } else {
-                    if (response?.data?.errors?.[0]?.message == "Max rate limit '100' exceeded with in '20' secs") {
+                    if (response?.data?.errors?.[0].code == "606") {
                         const waitTime = await rateLimitCheck(orgId, connectionId);
                         await new Promise((resolve) => setTimeout(resolve, waitTime));
-                        console.log(response?.data?.errors?.[0]?.message, "----->", waitTime)
-                        return await invokeMarketoWithoutRateLimit(req)
+                        const retryResponse = await invokeMarketoAPI(req)
+                        return retryResponse;
+                    } else {
+                        console.log({ response });
+                        return { startTime, endTime: moment().toISOString(), error: JSON.stringify(response?.data?.errors) };
                     }
-                    return { startTime, endTime: moment().toISOString(), error: JSON.stringify(response?.data?.errors) };
+
                 }
             }
             await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
     } catch (error) {
-
-        throw error;
+        if (error.code == 'ETIMEDOUT' || 'ECONNRESET') {
+            const waitTime = await rateLimitCheck(orgId, connectionId);
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
+            const retryResponse = await invokeMarketoAPI(req);
+            return retryResponse;
+        } else {
+            console.log({ error });
+            return { startTime, endTime: moment().toISOString(), error: error?.message };
+        }
     }
 }
 
@@ -59,9 +70,6 @@ const invokeMarketoWithoutRateLimit = async (req) => {
         if (response?.data?.success) {
             return { startTime, endTime: moment().toISOString(), data: response?.data?.requestId };
         } else {
-            if (response?.data?.errors?.[0]?.message == "Max rate limit '100' exceeded with in '20' secs") {
-                return await invokeMarketoWithoutRateLimit(req)
-            }
             return { startTime, endTime: moment().toISOString(), error: JSON.stringify(response?.data?.errors) };
         }
 
