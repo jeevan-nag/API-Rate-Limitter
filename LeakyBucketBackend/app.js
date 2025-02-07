@@ -17,8 +17,16 @@ app.get('/test', async (req, res) => {
 
 app.post("/getMarketoDetails", async (req, res) => {
     try {
-        console.log({ index: req.body.index })
         const response = await marketoController.invokeMarketoAPI(req);
+        return res.status(200).send({ success: true, data: response });
+    } catch (error) {
+        return res.status(400).send({ message: error?.message })
+    }
+})
+
+app.post("/getMarketoDetailsWithoutRateLimit", async (req, res) => {
+    try {
+        const response = await marketoController.invokeMarketoWithoutRateLimit(req);
         return res.status(200).send({ success: true, data: response });
     } catch (error) {
         return res.status(400).send({ message: error?.message })

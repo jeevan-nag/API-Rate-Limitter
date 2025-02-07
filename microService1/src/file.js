@@ -16,7 +16,6 @@ async function appendJsonResponse(filePath, index, newData) {
         const response = fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2), 'utf-8');
         return response;
     } catch (error) {
-        console.log(error);
         throw error;
     }
 }

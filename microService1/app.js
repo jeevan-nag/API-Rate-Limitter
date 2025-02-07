@@ -14,18 +14,18 @@ app.get('/test', (req, res) => {
     }
 })
 
-app.get('/testRateLimitter1', async (req, res) => {
+app.get('/invokeMarketo', async (req, res) => {
     try {
-        await rateLimitter.testRateLimitter1(req)
+        await rateLimitter.invokeMarketo(req)
         return res.status(200).send({ message: 'Invoked to test the rate limitter 1.' })
     } catch (error) {
         return res.status(400).send({ message: error?.message })
     }
 })
 
-app.get('/testRateLimitter2', async (req, res) => {
+app.get('/invokeMarketoWithoutRateLimit', async (req, res) => {
     try {
-        await rateLimitter.testRateLimitter1(req)
+        await rateLimitter.invokeMarketoWithoutRateLimit(req)
         return res.status(200).send({ message: 'Invoked to test the rate limitter 2 .' })
     } catch (error) {
         return res.status(400).send({ message: error?.message })
